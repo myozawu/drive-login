@@ -7,12 +7,19 @@ import { Redis } from "@upstash/redis";
  * browser (/authorize, /callback), then read back by Kodi (GET /pin/{pin}).
  * Those requests can land on different serverless instances, so the data has
  * to live outside the process. Redis is used when it is configured; the
- * in-memory map is only a local-development fallback and is not shared.
+ * in-memory fallback below cannot stand in for it on Vercel.
  */
 
 type Entry = { value: unknown; expiresAt: number };
 
-const memory = new Map<string, Entry>();
+// Hung off globalThis rather than module scope: Next.js gives each route its
+// own module instance, so a module-level map is not even shared between routes
+// inside one process. On Vercel each route is additionally its own function,
+// which no in-process store can bridge — configure Redis for anything real.
+const memory: Map<string, Entry> = ((globalThis as any).__pinStore ??= new Map<
+  string,
+  Entry
+>());
 
 const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
 const token =
