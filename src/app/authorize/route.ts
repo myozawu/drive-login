@@ -1,12 +1,13 @@
+import * as store from "@/lib/store";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest, res: NextResponse) {
+export const dynamic = "force-dynamic";
+
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const pin = searchParams.get("pin") as string;
+  const pin = searchParams.get("pin");
 
-  const data = cacheInstance.get(pin.toLocaleLowerCase());
-
-  if (!data) {
+  if (!pin || !(await store.has(pin.toLocaleLowerCase()))) {
     return NextResponse.json("Invalid PIN", {
       status: 401,
     });

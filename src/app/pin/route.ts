@@ -1,4 +1,6 @@
 import { getIp } from "@/lib/get-ip";
+import { PIN_TTL_SECONDS } from "@/lib/config";
+import * as store from "@/lib/store";
 import {
   encodeCredentials,
   formDataToJson,
@@ -6,6 +8,8 @@ import {
   generatePin,
 } from "@/utils";
 import { NextRequest } from "next/server";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   const body = await req.formData();
@@ -16,12 +20,9 @@ export async function POST(req: NextRequest) {
   const password = generatePassword(128);
 
   let pin = "";
-  let pinExists = 1;
-
-  while (pinExists) {
+  do {
     pin = generatePin();
-    pinExists = Number(cacheInstance.has(pin));
-  }
+  } while (await store.has(pin));
 
   const data = {
     pin,
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
     owner,
   };
 
-  cacheInstance.set(pin, data, 120);
+  await store.set(pin, data, PIN_TTL_SECONDS);
 
   return Response.json(data);
 }
