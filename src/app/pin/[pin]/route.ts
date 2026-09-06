@@ -1,12 +1,16 @@
 import { UserData } from "@/type";
+import * as store from "@/lib/store";
 import { decodeCredentials } from "@/utils";
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(
   req: NextRequest,
   { params: { pin } }: { params: { pin: string } }
 ) {
-  const userData = cacheInstance.get<UserData>(pin.toLocaleLowerCase());
+  const key = pin.toLocaleLowerCase();
+  const userData = await store.get<UserData>(key);
 
   if (!userData) {
     return NextResponse.json("Message: Token Expired", {
@@ -22,7 +26,7 @@ export async function GET(
     });
   }
 
-  const [, authBasis] = auth?.split(" ");
+  const [, authBasis] = auth.split(" ");
   const { password } = decodeCredentials(authBasis);
 
   if (userData.password !== password) {
@@ -35,6 +39,6 @@ export async function GET(
     return Response.json(null);
   }
 
-  cacheInstance.del(pin.toLocaleLowerCase());
+  await store.del(key);
   return NextResponse.json(userData.token);
 }
